@@ -1,0 +1,80 @@
+# We need the socket library to set up network connections.
+import socket
+# The hashlib library is used to generate MD5 hashes of messages.
+import hashlib
+# Import sys to exit the program if we encounter an error.
+import sys
+
+# This function sets up the server to listen for connections on a specified port.
+def start_server(port):
+    # Create a new socket for internet communication using TCP.
+    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    # Get the name of the local machine where this script is running.
+    localHost = socket.gethostname()
+    
+    # Bind our server socket to the specified port.
+    serverSocket.bind((localHost, port))
+    
+    # Start listening for incoming connection requests.
+    serverSocket.listen(1)
+    # Let the user know the server is ready and waiting for a connection.
+    print('\nServer is waiting for a connection request')
+    
+    # Return the socket that's listening for connections.
+    return serverSocket
+
+# This function handles the processing of messages received from a client.
+def process_messages(connection):
+    # Keep running this loop, listening for messages from the client.
+    while True:
+        # Wait and receive data from the client.
+        buffer = connection.recv(2048)
+        # If we don't get any data, it's time to close the connection.
+        if not buffer:
+            break
+        
+        # Convert the received bytes into a string to see what was sent.
+        received_message = buffer.decode('utf-8')
+        
+        # Generate an MD5 hash of the received message for verification purposes.
+        md5hash = hashlib.md5(buffer).hexdigest()
+        
+        # Print the message we received and its MD5 hash.
+        print(f"Received message: {received_message}")
+        print(f"MD5 Hash: {md5hash}")
+        
+        # Send the MD5 hash back to the client as a response.
+        connection.send(md5hash.encode('utf-8'))
+        
+        # If the message contains 'exit', we'll stop the server.
+        if 'exit' in received_message.lower():
+            print("Server terminated by user command.")
+            break
+
+# The main function orchestrates starting the server and handling connections.
+def main():
+    try:
+        # Start the server and begin listening on port 5555.
+        serverSocket = start_server(5555)
+        
+        # Wait for and accept an incoming connection.
+        conn, client = serverSocket.accept()
+        # Let the user know we've successfully connected to a client.
+        print(f"Connection received from {client}")
+        
+        # Process messages from the connected client.
+        process_messages(conn)
+        
+        # Close the client connection once we're done.
+        conn.close()
+        
+    except Exception as err:
+        # If there's an error, print it and exit the program.
+        print(f"Server error: {str(err)}")
+        sys.exit(1)
+
+# Check if this script is the main one being executed.
+if __name__ == '__main__':
+    # If so, run the main function to start the server.
+    main()
